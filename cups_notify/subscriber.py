@@ -17,7 +17,7 @@ class Subscriber(object):
     def __del__(self):
         self.unsubscribe_all()
 
-    def subscribe(self, cb, filters=None):
+    def subscribe(self, cb, filters=None, job_id=None):
         """Subscribe a new callback.
         """
         assert callable(cb), "Callback is not callable"
@@ -25,7 +25,7 @@ class Subscriber(object):
             filters = [event.CUPS_EVT_ALL]
         if cb in self._callbacks:
             self._callbacks[cb].shutdown()
-        self._callbacks[cb] = NotificationListerner(self._conn, cb, filters, self.address)
+        self._callbacks[cb] = NotificationListerner(self._conn, cb, filters, self.address, job_id)
         self._callbacks[cb].start()
 
     def is_subscribed(self, cb):

@@ -3,6 +3,7 @@
 """Notification system for the pycups library."""
 
 import logging
+from .errors import JobNotExists
 
 LOGGER = logging.getLogger(__name__)
 

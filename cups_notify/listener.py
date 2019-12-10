@@ -14,6 +14,7 @@ except ImportError:
 import cups
 from cups_notify import LOGGER
 from cups_notify import event
+from cups_notify import JobNotExists
 
 
 def find_free_port():
@@ -75,7 +76,7 @@ class NotificationHandler(BaseHTTPRequestHandler):
 
 class NotificationListerner(HTTPServer):
 
-    def __init__(self, cups_conn, callback, filters=None, address='localhost'):
+    def __init__(self, cups_conn, callback, filters=None, address='localhost', job_id=None):
         HTTPServer.__init__(self, (address, find_free_port()), NotificationHandler)
         self._conn = cups_conn
         self._thread = None
@@ -83,6 +84,7 @@ class NotificationListerner(HTTPServer):
         self._rss_uri = 'rss://{}:{}'.format(self.server_address[0], self.server_address[1])
         self._last_guid = -1
         self._callback = callback
+        self._job_id = job_id
 
     def start(self):
         """Start the notification server.
@@ -102,9 +104,17 @@ class NotificationListerner(HTTPServer):
         else:
             hostname = cups.getServer()
         cups_uri = "ipp://{}:{}".format(hostname, cups.getPort())
-        self._conn.createSubscription(cups_uri,
-                                      recipient_uri=self._rss_uri,
-                                      events=self._filters)
+        try:
+            self._conn.createSubscription(cups_uri,
+                                          recipient_uri=self._rss_uri,
+                                          events=self._filters,
+                                          job_id=self._job_id)
+        except cups.IPPError as e:
+            status = e.args[0]
+            if status == 1030:
+                LOGGER.warn("The job {} not exists".format(self._job_id))
+                raise JobNotExists()
+            raise e
 
     def is_running(self):
         """Return True if the notification server is started.

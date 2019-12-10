@@ -1,0 +1,2 @@
+class JobNotExists(Exception):
+    pass
